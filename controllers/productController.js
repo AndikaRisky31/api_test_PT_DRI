@@ -1,4 +1,4 @@
-import { connection } from '../db.js';
+import { connection } from '../db/connection.js';
 
 // Controller untuk menambahkan produk baru
 export const addProduct = async (req, res) => {

@@ -1,4 +1,4 @@
-import { connection } from '../db.js';
+import connection from "../db/connection.js";
 
 const seedProducts = async () => {
     const products = [
@@ -15,7 +15,7 @@ const seedProducts = async () => {
         ];
 
     const insertProductQuery = `
-        INSERT INTO product (name, price)
+        INSERT INTO products (name, price)
         VALUES ?
     `;
 

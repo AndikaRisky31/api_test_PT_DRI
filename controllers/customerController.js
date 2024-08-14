@@ -1,81 +1,111 @@
-import { connection } from '../db.js';
+import connection from '../db/connection.js';
 
-// Controller untuk menambahkan data customer baru
-export const addCustomer = async (req, res) => {
-  const { name, level, favorite_menu } = req.body;
+export const getCustomers = async (req, res, next) => {
   try {
-    const [result] = await connection.execute(
-      'INSERT INTO customer (name, level, favorite_menu) VALUES (?, ?, ?)',
-      [name, level, favorite_menu]
-    );
-    res.status(201).json({ id: result.insertId, name, level, favorite_menu });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+    const { page = 1, limit = 10, sortBy = 'name', order = 'asc' } = req.query;
+    const offset = (page - 1) * limit;
 
-// Controller untuk melihat detail data customer
-export const getCustomerDetail = async (req, res) => {
-  const customerId = req.params.id;
-  try {
-    const [customer] = await connection.execute(
-      'SELECT * FROM customer WHERE id = ? AND is_deleted = FALSE',
-      [customerId]
-    );
-    if (customer.length === 0) return res.status(404).json({ message: 'Customer not found' });
+    const [[{ total_customers }]] = await connection.query(`
+      SELECT COUNT(*) as total_customers 
+      FROM customers 
+      WHERE is_delete = false
+    `);
 
-    const [orders] = await connection.execute(
-      `SELECT o.id AS order_id, p.name AS product_name, oi.quantity
-       FROM \`order\` o
-       JOIN order_item oi ON o.id = oi.order_id
-       JOIN product p ON oi.product_id = p.id
-       WHERE o.customer_id = ?`,
-      [customerId]
-    );
+    const total_pages = Math.ceil(total_customers / limit);
 
-    res.json({ customer: customer[0], orders });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+    const validSortBy = ['name', 'level', 'favorite_menu', 'total_transaction'];
+    const sortColumn = validSortBy.includes(sortBy) ? sortBy : 'name'; // Default ke kolom 'name'
 
-// Controller untuk menghapus data customer (soft delete)
-export const deleteCustomer = async (req, res) => {
-  const customerId = req.params.id;
-  try {
-    await connection.execute(
-      'UPDATE customer SET is_deleted = TRUE WHERE id = ?',
-      [customerId]
-    );
-    res.status(200).json({ message: 'Customer deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+    const validOrder = ['asc', 'desc'];
+    const sortOrder = validOrder.includes(order) ? order : 'asc'; // Default ke urutan 'asc'
 
-// Controller untuk mendapatkan daftar customer dengan pagination
-export const getCustomers = async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
-  const offset = (page - 1) * limit;
-
-  try {
-    const [customers] = await connection.execute(
-      'SELECT * FROM customer WHERE is_deleted = FALSE LIMIT ? OFFSET ?',
-      [parseInt(limit), parseInt(offset)]
+    const [customers] = await connection.query(`
+      SELECT 
+        customers.id,
+        customers.name, 
+        customers.level,
+        customers.favorite_menu,
+        COALESCE(SUM(succes_orders.quantity * products.price), 0) as total_transaction 
+      FROM customers 
+      LEFT JOIN succes_orders ON customers.id = succes_orders.customer_id 
+      LEFT JOIN products ON succes_orders.product_id = products.id 
+      WHERE customers.is_delete = false 
+      GROUP BY customers.id 
+      ORDER BY 
+        CASE 
+          WHEN '${sortColumn}' = 'name' THEN customers.name
+          WHEN '${sortColumn}' = 'level' THEN customers.level
+          WHEN '${sortColumn}' = 'favorite_menu' THEN customers.favorite_menu
+          WHEN '${sortColumn}' = 'total_transaction' THEN COALESCE(SUM(succes_orders.quantity * products.price), 0)
+          ELSE customers.name
+        END ${sortOrder}
+      LIMIT ? OFFSET ?`, [parseInt(limit), parseInt(offset)]
     );
 
-    const [totalCount] = await connection.execute(
-      'SELECT COUNT(*) AS count FROM customer WHERE is_deleted = FALSE'
-    );
-
-    res.json({
+    res.json({ 
       page: parseInt(page),
-      limit: parseInt(limit),
-      total: totalCount[0].count,
+      total_pages,
       customers,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    next(error);
   }
 };
 
+export const addCustomer = async (req, res, next) => {
+    try {
+        const { name, level } = req.body;
+        await connection.query(`INSERT INTO customers (name, level) VALUES (?, ?)`, [name, level]);
+        res.status(201).json({ message: 'Customer added successfully.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getCustomerDetail = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const [[customer]] = await connection.query(`SELECT * FROM customers WHERE id = ? AND is_delete = false`, [id]);
+
+        if (!customer) {
+            return res.status(404).json({ message: 'Customer not found.' });
+        }
+
+        const [orders] = await connection.query(`
+            SELECT products.name, succes_orders.quantity 
+            FROM succes_orders 
+            JOIN products ON succes_orders.product_id = products.id 
+            WHERE succes_orders.customer_id = ?`, [id]);
+
+        res.json({ customer, orders });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const updateOrderQuantity = async (req, res, next) => {
+    try {
+        const { customerId, productId } = req.params;
+        const { quantity } = req.body;
+
+        await connection.query(`
+            UPDATE succes_orders 
+            SET quantity = ? 
+            WHERE customer_id = ? AND product_id = ?`, [quantity, customerId, productId]);
+
+        res.json({ message: 'Order quantity updated successfully.' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const deleteCustomer = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        await connection.query(`UPDATE customers SET is_delete = true WHERE id = ?`, [id]);
+        res.json({ message: 'Customer deleted successfully.' });
+    } catch (error) {
+        next(error);
+    }
+};
