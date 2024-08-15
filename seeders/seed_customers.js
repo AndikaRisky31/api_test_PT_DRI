@@ -1,6 +1,6 @@
-import connection from "../db/connection.js";
+import connection from '../db/connection.js';
 
-const seedCustomers = async () => {
+export const seedCustomers = async () => {
   const customers = [
     { name: 'John Doe', level: 'warga', favorite_menu: 'Margherita Pizza' },
     { name: 'Jane Smith', level: 'juragan', favorite_menu: 'Classic Cheeseburger' },
@@ -25,10 +25,6 @@ const seedCustomers = async () => {
     await connection.query(insertCustomerQuery, [values]);
     console.log('Customers seeded successfully.');
   } catch (error) {
-    console.error('Error seeding customers:', error);
-  } finally {
-    await connection.end();
+    console.error('Error seeding customers:', error.message);
   }
 };
-
-seedCustomers();

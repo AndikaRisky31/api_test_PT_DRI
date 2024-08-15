@@ -1,7 +1,8 @@
 import connection from '../db/connection.js';
 
-const seedOrders = async () => {
+export const seedOrders = async () => {
     try {
+        // Pastikan data yang diperlukan ada di tabel sebelum melakukan insert
         await connection.query(`
             INSERT INTO succes_orders (customer_id, product_id, quantity) VALUES
             (1, 1, 2),
@@ -13,13 +14,12 @@ const seedOrders = async () => {
         console.log('Orders seeded successfully.');
     } catch (error) {
         console.error('Seeding orders failed:', error.message);
-    } finally {
-        await connection.end();
     }
 };
 
-const seedPendingOrders = async () => {
+export const seedPendingOrders = async () => {
     try {
+        // Pastikan data yang diperlukan ada di tabel sebelum melakukan insert
         await connection.query(`
             INSERT INTO pending_orders (customer_id, product_id, quantity) VALUES
             (1, 1, 2),
@@ -28,13 +28,8 @@ const seedPendingOrders = async () => {
             (3, 3, 4);
         `);
 
-        console.log('Orders seeded successfully.');
+        console.log('Pending orders seeded successfully.');
     } catch (error) {
-        console.error('Seeding orders failed:', error.message);
-    } finally {
-        await connection.end();
+        console.error('Seeding pending orders failed:', error.message);
     }
 };
-
-seedPendingOrders();
-seedOrders();
