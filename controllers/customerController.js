@@ -124,7 +124,7 @@ export const updateOrderQuantity = async (req, res, next) => {
           WHERE customer_id = ?
           ORDER BY quantity DESC
           LIMIT 1`, [customerId]);
-a
+
       const [[favoriteProduct]] = await connection.query(`
           SELECT name
           FROM products
