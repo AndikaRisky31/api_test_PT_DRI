@@ -13,8 +13,8 @@ app.get('/', (req, res) => {
     res.send('Selamat datang di API Daya Rekadigital Indonesia');
   });
 
-  app.use('/customers', customerRoutes);
-  app.use('/orders', orderRoutes);
+app.use('/customers', customerRoutes);
+app.use('/orders', orderRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);

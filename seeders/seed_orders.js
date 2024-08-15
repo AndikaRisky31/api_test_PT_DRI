@@ -18,4 +18,23 @@ const seedOrders = async () => {
     }
 };
 
+const seedPendingOrders = async () => {
+    try {
+        await connection.query(`
+            INSERT INTO pending_orders (customer_id, product_id, quantity) VALUES
+            (1, 1, 2),
+            (1, 2, 1),
+            (2, 2, 3),
+            (3, 3, 4);
+        `);
+
+        console.log('Orders seeded successfully.');
+    } catch (error) {
+        console.error('Seeding orders failed:', error.message);
+    } finally {
+        await connection.end();
+    }
+};
+
+seedPendingOrders();
 seedOrders();

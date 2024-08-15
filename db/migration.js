@@ -6,7 +6,7 @@ const migration = async () => {
             CREATE TABLE IF NOT EXISTS customers (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
-                level ENUM('warga', 'juragan', 'sultan', 'konglomerat') NOT NULL,
+                level ENUM('warga', 'juragan', 'sultan', 'konglomerat') DEFAULT 'warga',
                 favorite_menu VARCHAR(255),
                 is_delete BOOLEAN DEFAULT false,
                 createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
